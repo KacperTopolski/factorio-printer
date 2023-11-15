@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,25 +8,66 @@
     <style>
         body {
             background-color: black;
-            margin: 0; /* Remove default margin */
-            overflow: hidden; /* Prevent default body margin */
+            margin: 0;
+            overflow: hidden;
         }
 
         canvas {
             display: block;
-            margin: auto; /* Center the canvas */
-            border: 1px solid white; /* Add a white border for visibility */
+            margin: auto;
+            border: 1px solid white;
+        }
+
+        #dropArea {
+            width: 400px;
+            height: 400px;
+            border: 2px dashed white;
+            margin: auto;
+            text-align: center;
+            line-height: 400px;
+            color: white;
         }
 
         input {
-            display: block;
-            margin: 10px auto;
+            display: none;
+        }
+
+        #copyTextarea {
+          width: 300px;
+          height: 100px;
+        }
+
+        #copyButton {
+          margin-top: 10px;
+          cursor: pointer;
         }
     </style>
 </head>
+
 <body>
-    <input type="file" id="imageInput" accept="image/*">
+    <div id="dropArea">
+        <p>Drag &amp; Drop or <label for="imageInput">Click</label> to Select an Image</p>
+        <input type="file" id="imageInput" accept="image/*">
+    </div>
     <canvas id="outputCanvas" width="400" height="400"></canvas>
     <script src="main.js"></script>
+
+    <textarea id="copyTextarea">This is the text you want to copy.</textarea>
+    <button id="copyButton" onclick="copyToClipboard()">Copy to Clipboard</button>
+
+    <script>
+        function copyToClipboard() {
+            // Get the text from the textarea
+            var copyText = document.getElementById("copyTextarea");
+
+            // Select the text in the textarea
+            copyText.select();
+            copyText.setSelectionRange(0, 99999); // For mobile devices
+
+            // Copy the text to the clipboard
+            document.execCommand("copy");
+        }
+    </script>
 </body>
+
 </html>
