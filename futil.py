@@ -26,8 +26,8 @@ class Blueprint:
 
     def _at(self, x, y) -> dict:
         found = [entity for entity in self.entities if abs(entity['position']['x'] - x) <= 0.5 and abs(entity['position']['y'] - y) <= 0.5]
-        assert len(found) == 1
-        return found[0]
+        assert len(found) <= 1
+        return found[0] if found else None
 
     def create_constant(self, x, y):
         constant = {
@@ -71,9 +71,16 @@ class Blueprint:
         }
         filters.append(item)
 
-    def add_connection(self, x, y, xy_canal, s, t, st_canal, color):
+    def add_connection(self, x, y, xy_canal, s, t, st_canal, color, strict=True):
         entity_1: dict = self._at(x + 0.5, y + 0.5)
         entity_2: dict = self._at(s + 0.5, t + 0.5)
+
+        if not entity_1 or not entity_2:
+            if strict:
+                raise Exception('Entity not found')
+            else:
+                return
+
         connection1: list = entity_1.setdefault('connections', {}).setdefault(xy_canal, {}).setdefault(color, [])
         connection2: list = entity_2.setdefault('connections', {}).setdefault(st_canal, {}).setdefault(color, [])
 
