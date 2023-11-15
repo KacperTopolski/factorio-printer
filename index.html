@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Processing Website</title>
+    <style>
+        body {
+            background-color: black;
+            margin: 0; /* Remove default margin */
+            overflow: hidden; /* Prevent default body margin */
+        }
+
+        canvas {
+            display: block;
+            margin: auto; /* Center the canvas */
+            border: 1px solid white; /* Add a white border for visibility */
+        }
+
+        input {
+            display: block;
+            margin: 10px auto;
+        }
+    </style>
+</head>
+<body>
+    <input type="file" id="imageInput" accept="image/*">
+    <canvas id="outputCanvas" width="400" height="400"></canvas>
+    <script src="main.js"></script>
+</body>
+</html>
