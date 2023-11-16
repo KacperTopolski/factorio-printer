@@ -1,8 +1,35 @@
+function copyTextareaToClipboard() {
+    const copyTextarea = document.getElementById('copyTextarea');
+
+    copyTextarea.select();
+    copyTextarea.setSelectionRange(0, 99999); // For mobile devices
+    document.execCommand('copy');
+}
+
+function copyImageBlueprint() {
+    copyTextareaToClipboard();
+}
+
+function copyChestBlueprint() {
+    const copyTextarea = document.getElementById('copyTextarea');
+
+    const itemList = get_palette().map(item => item.name);
+    const bl = blueprint_of_chests_requesters(itemList, 50);
+    copyTextarea.value = bl.encode();
+
+    copyTextareaToClipboard();
+}
+
+function copyPrinterBlueprint() {
+    throw new Error("not implemented");
+}
+
 document.addEventListener('DOMContentLoaded', function () {
-    var dropArea = document.getElementById('dropArea');
-    var imageInput = document.getElementById('imageInput');
-    var outputCanvas = document.getElementById('outputCanvas');
-    var ctx = outputCanvas.getContext('2d');
+    const dropArea = document.getElementById('dropArea');
+    const imageInput = document.getElementById('imageInput');
+    const outputCanvas = document.getElementById('outputCanvas');
+    const ctx = outputCanvas.getContext('2d');
+    const copyTextarea = document.getElementById('copyTextarea');
 
     // Handle drag and drop events
     dropArea.addEventListener('dragover', function (e) {
@@ -31,25 +58,33 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     function handleImage(file) {
-        if (file) {
-            var reader = new FileReader();
+        if (!file)
+            return;
 
-            reader.onload = function (event) {
-                var img = new Image();
+        const reader = new FileReader();
 
-                img.onload = function () {
-                    ctx.fillStyle = 'black';
-                    ctx.fillRect(0, 0, outputCanvas.width, outputCanvas.height);
-                    ctx.drawImage(img, 0, 0, outputCanvas.width, outputCanvas.height);
+        reader.onload = function (event) {
+            const img = new Image();
 
-                    // Process the image (add your image processing logic here)
-                    // ...
-                };
+            img.onload = function (event) {
+                const result = process_image(img, get_palette());
+                const new_img = new Image();
 
-                img.src = event.target.result;
+                new_img.onload = function() {
+                    outputCanvas.height = 400 * new_img.height / new_img.width;
+
+                    ctx.clearRect(0, 0, outputCanvas.width, outputCanvas.height);
+                    ctx.drawImage(new_img, 0, 0, outputCanvas.width, outputCanvas.height);
+                }
+
+                new_img.src = result.imageURL;
+
+                const bl = blueprint_from_material_list(result.itemData);
+                copyTextarea.value = bl.encode();
             };
+            img.src = event.target.result;
+        };
 
-            reader.readAsDataURL(file);
-        }
+        reader.readAsDataURL(file);
     }
 });

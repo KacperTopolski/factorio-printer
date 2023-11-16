@@ -45,29 +45,22 @@
 </head>
 
 <body>
+    <textarea id="copyTextarea">This is the text you want to copy.</textarea>
+    <button id="copyImageButton" onclick="copyImageBlueprint()">Copy image blueprint</button>
+    <button id="copyChestButton" onclick="copyChestBlueprint()">Copy chest blueprint</button>
+    <button id="copyPrinterButton" onclick="copyPrinterBlueprint()">Copy printer blueprint</button>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
+    <script src="blueprint.js"></script>
+    <script src="image_processing.js"></script>
+
     <div id="dropArea">
         <p>Drag &amp; Drop or <label for="imageInput">Click</label> to Select an Image</p>
         <input type="file" id="imageInput" accept="image/*">
     </div>
     <canvas id="outputCanvas" width="400" height="400"></canvas>
+
     <script src="main.js"></script>
-
-    <textarea id="copyTextarea">This is the text you want to copy.</textarea>
-    <button id="copyButton" onclick="copyToClipboard()">Copy to Clipboard</button>
-
-    <script>
-        function copyToClipboard() {
-            // Get the text from the textarea
-            var copyText = document.getElementById("copyTextarea");
-
-            // Select the text in the textarea
-            copyText.select();
-            copyText.setSelectionRange(0, 99999); // For mobile devices
-
-            // Copy the text to the clipboard
-            document.execCommand("copy");
-        }
-    </script>
 </body>
 
 </html>
