@@ -11,34 +11,34 @@ function get_palette() {
         {r: 197, g: 197, b: 197, name: "plastic-bar"},
         {r: 97, g: 81, b: 71, name: "assembling-machine-1"},
         {r: 75, g: 74, b: 86, name: "assembling-machine-2"},
-        {r: 87, g: 91, b: 61, name: "assembling-machine-3"},
         {r: 44, g: 40, b: 36, name: "coal"},
-        {r: 118, g: 121, b: 122, name: "concrete"},
         {r: 87, g: 121, b: 68, name: "effectivity-module"},
         {r: 95, g: 136, b: 39, name: "electronic-circuit"},
         {r: 169, g: 67, b: 41, name: "advanced-circuit"},
-        {r: 85, g: 104, b: 164, name: "processing-unit"},
-        {r: 132, g: 73, b: 64, name: "explosives"},
-        {r: 111, g: 109, b: 89, name: "hazard-concrete"},
         {r: 108, g: 92, b: 77, name: "iron-chest"},
         {r: 80, g: 102, b: 113, name: "iron-ore"},
-        {r: 133, g: 124, b: 57, name: "landfill"},
         {r: 136, g: 89, b: 61, name: "productivity-module"},
         {r: 158, g: 154, b: 152, name: "small-lamp"},
-        {r: 74, g: 74, b: 74, name: "solid-fuel"},
-        {r: 166, g: 152, b: 28, name: "sulfur"},
         {r: 72, g: 112, b: 127, name: "speed-module"},
         {r: 121, g: 102, b: 68, name: "stone"},
         {r: 117, g: 118, b: 114, name: "steel-plate"},
-        {r: 119, g: 103, b: 101, name: "steel-chest"},
         {r: 111, g: 112, b: 107, name: "stone-brick"},
-        {r: 130, g: 98, b: 46, name: "wooden-chest"},
-        {r: 104, g: 88, b: 63, name: "underground-belt"},
         {r: 93, g: 69, b: 93, name: "logistic-chest-active-provider"},
         {r: 113, g: 71, b: 59, name: "logistic-chest-passive-provider"},
         {r: 73, g: 105, b: 69, name: "logistic-chest-buffer"},
         {r: 77, g: 96, b: 96, name: "logistic-chest-requester"},
-        {r: 109, g: 97, b: 54, name: "logistic-chest-storage"}
+        {r: 109, g: 97, b: 54, name: "logistic-chest-storage"},
+        {r: 132, g: 73, b: 64, name: "explosives"},
+        {r: 133, g: 124, b: 57, name: "landfill"},
+        {r: 74, g: 74, b: 74, name: "solid-fuel"},
+        {r: 166, g: 152, b: 28, name: "sulfur"},
+        {r: 119, g: 103, b: 101, name: "steel-chest"},
+        {r: 104, g: 88, b: 63, name: "underground-belt"},
+        {r: 130, g: 98, b: 46, name: "wooden-chest"},
+        {r: 87, g: 91, b: 61, name: "assembling-machine-3"},
+        {r: 118, g: 121, b: 122, name: "concrete"},
+        {r: 85, g: 104, b: 164, name: "processing-unit"},
+        {r: 111, g: 109, b: 89, name: "hazard-concrete"},
     ];
 }
 
@@ -81,13 +81,13 @@ function process_image(image, palette, W_ROUND = 4, H = 32) {
     return {imageURL: offscreen_canvas.toDataURL(), itemData: itemData};
 }
 
-function blueprint_of_chests_requesters(itemList, count, cnt=2) {
+function blueprint_of_chests_requesters(item_list, item_count, chest_count=2) {
     const bl = new Blueprint();
-    for (let i = 0; i < cnt; ++i)
+    for (let i = 0; i < chest_count; ++i)
         bl.add_requester(i * 4, 0);
 
-    for (let i = 0; i < itemList.length; ++i)
-        bl.add_item((i % cnt) * 4, 0, itemList[i], count);
+    for (let i = 0; i < item_list.length; ++i)
+        bl.add_item((i % chest_count) * 4, 0, item_list[i], item_count);
 
     return bl;
 }
@@ -119,8 +119,10 @@ function blueprint_from_material_list(itemData) {
         bl.add_connection(X, C[0], Blueprint.CONN_DEFAULT, X, C[1], Blueprint.CONN_DEFAULT, 'red');
         bl.add_connection(X, C[1], Blueprint.CONN_DEFAULT, X, D, Blueprint.CONN_DECIDER_IN, 'red');
 
-        for (let y = 0; y < 32; ++y)
-            bl.add_item(X, C[y % 2], itemData[x][y], 1 << y);
+        for (let y = 0; y < 32; ++y) {
+            const shift = Math.abs(Math.floor(y / 2) - 7.5) * 2;
+            bl.add_item(X, C[y % 2], itemData[(x + shift) % W][y], 1 << y);
+        }
     }
 
     bl.add_entity({
@@ -198,8 +200,18 @@ function blueprint_from_material_list(itemData) {
         'position': {'x': -2.5, 'y': 15.5}
     });
 
+    for (let i = 0; i < 1 + (W / 4 - 9) / 18; ++i) {
+        bl.add_entity({
+            'name': 'substation',
+            'position': {'x': i * 18 + 1, 'y': -1}
+        });
+        bl.add_entity({
+            'name': 'substation',
+            'position': {'x': i * 18 + 1, 'y': 17}
+        });
+    }
+
     // main control
-    bl.add_connection(-3, 6, Blueprint.CONN_DEFAULT, -1, 4, Blueprint.CONN_DECIDER_IN, 'red');
     bl.add_connection(-1, 4, Blueprint.CONN_DECIDER_IN, -1, 3, Blueprint.CONN_DECIDER_IN, 'red');
     bl.add_connection(-1, 3, Blueprint.CONN_DECIDER_IN, -1, 2, Blueprint.CONN_DECIDER_IN, 'red');
     bl.add_connection(-1, 2, Blueprint.CONN_DECIDER_OUT, 0, 2, Blueprint.CONN_DECIDER_IN, 'green');
@@ -210,6 +222,7 @@ function blueprint_from_material_list(itemData) {
     bl.add_connection(-1, 4, Blueprint.CONN_DECIDER_IN, -1, 4, Blueprint.CONN_DECIDER_OUT, 'red');
 
     // chests
+    bl.add_connection(-3, 6, Blueprint.CONN_DEFAULT, -1, 4, Blueprint.CONN_DECIDER_IN, 'red');
     bl.add_connection(-3, 9, Blueprint.CONN_DEFAULT, 0, 2, Blueprint.CONN_DECIDER_OUT, 'red');
     bl.add_connection(-3, 11, Blueprint.CONN_DEFAULT, 0, 6, Blueprint.CONN_DECIDER_OUT, 'red');
     bl.add_connection(-3, 13, Blueprint.CONN_DEFAULT, 0, 10, Blueprint.CONN_DECIDER_OUT, 'red');

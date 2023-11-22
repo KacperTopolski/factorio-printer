@@ -39,6 +39,11 @@ class Blueprint {
         this.entities.push(entity);
     }
 
+    add_entities() {
+        for (var i = 0; i < arguments.length; i++)
+            this.add_entity(arguments[i]);
+    }
+
     add_constant(x, y) {
         this.add_entity({
             name: 'constant-combinator',

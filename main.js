@@ -13,8 +13,8 @@ function copyImageBlueprint() {
 function copyChestBlueprint() {
     const copyTextarea = document.getElementById('copyTextarea');
 
-    const itemList = get_palette().map(item => item.name);
-    const bl = blueprint_of_chests_requesters(itemList, 50);
+    const item_list = get_palette().map(item => item.name);
+    const bl = blueprint_of_chests_requesters(item_list, 45, chest_count=1);
     copyTextarea.value = bl.encode();
 
     copyTextareaToClipboard();
@@ -67,7 +67,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const img = new Image();
 
             img.onload = function (event) {
-                const result = process_image(img, get_palette());
+                const result = process_image(img, get_palette(), 4, 32);
                 const new_img = new Image();
 
                 new_img.onload = function() {
