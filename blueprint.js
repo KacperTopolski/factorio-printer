@@ -3,8 +3,10 @@ function stringFromCharCodeArray(array) {
 }
 
 function decode(string) {
-    const as_binary = atob(string.slice(1)).split('').map(x => x.charCodeAt(0));
-    const inflated = pako.inflate(as_binary);
+    const sliced_string = string.slice(1);
+    const as_binary_string = atob(sliced_string);
+    const as_binary_array = as_binary_string.split('').map(x => x.charCodeAt(0));
+    const inflated = pako.inflate(as_binary_array);
     const json = stringFromCharCodeArray(inflated);
     return JSON.parse(json);
 }
