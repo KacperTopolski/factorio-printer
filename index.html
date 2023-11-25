@@ -32,20 +32,23 @@
             display: none;
         }
 
-        #copyTextarea {
-          width: 300px;
-          height: 100px;
+        #invisibleTextArea {
+            opacity: .01;
+            height:0;
+            position:absolute;
+            z-index: -1;
         }
 
         #copyButton {
-          margin-top: 10px;
-          cursor: pointer;
+            margin-top: 10px;
+            cursor: pointer;
         }
     </style>
 </head>
 
 <body>
-    <textarea id="copyTextarea">This is the text you want to copy.</textarea>
+    <textarea id="invisibleTextArea"></textarea>
+
     <button id="copyImageButton" onclick="copyImageBlueprint()">Copy image blueprint</button>
     <button id="copyPrinterButton" onclick="copyPrinterBlueprint()">Copy printer blueprint</button>
 

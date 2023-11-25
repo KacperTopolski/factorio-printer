@@ -1,23 +1,23 @@
-function copyTextareaToClipboard() {
-    const copyTextarea = document.getElementById('copyTextarea');
-
-    copyTextarea.select();
-    copyTextarea.setSelectionRange(0, 999999); // For mobile devices
+function copyToClipboard(text) {
+    const invisibleTextArea = document.getElementById('invisibleTextArea');
+    invisibleTextArea.value = text;
+    invisibleTextArea.select();
     document.execCommand('copy');
 }
 
+CACHED_IMAGE_BLUEPRINT = ''
 function copyImageBlueprint() {
-    copyTextareaToClipboard();
+    if (CACHED_IMAGE_BLUEPRINT.length == 0)
+        throw new Error('select image first');
+    copyToClipboard(CACHED_IMAGE_BLUEPRINT);
 }
 
 function copyPrinterBlueprint() {
-    const copyTextarea = document.getElementById('copyTextarea');
-
     const item_list = get_palette().map(item => item.name);
     const bl = printer_blueprint(PRINTER_STRING, item_list, 45, 48);
-    copyTextarea.value = bl.encode();
+    const text = bl.encode();
 
-    copyTextareaToClipboard();
+    copyToClipboard(text);
 }
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -76,7 +76,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 new_img.src = result.imageURL;
 
                 const bl = blueprint_from_material_list(result.itemData);
-                copyTextarea.value = bl.encode();
+                CACHED_IMAGE_BLUEPRINT = bl.encode();
+                copyImageBlueprint();
             };
             img.src = event.target.result;
         };
