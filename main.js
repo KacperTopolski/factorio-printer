@@ -2,7 +2,7 @@ function copyTextareaToClipboard() {
     const copyTextarea = document.getElementById('copyTextarea');
 
     copyTextarea.select();
-    copyTextarea.setSelectionRange(0, 99999); // For mobile devices
+    copyTextarea.setSelectionRange(0, 999999); // For mobile devices
     document.execCommand('copy');
 }
 
@@ -10,18 +10,14 @@ function copyImageBlueprint() {
     copyTextareaToClipboard();
 }
 
-function copyChestBlueprint() {
+function copyPrinterBlueprint() {
     const copyTextarea = document.getElementById('copyTextarea');
 
     const item_list = get_palette().map(item => item.name);
-    const bl = blueprint_of_chests_requesters(item_list, 45, chest_count=1);
+    const bl = printer_blueprint(PRINTER_STRING, item_list, 45, 48);
     copyTextarea.value = bl.encode();
 
     copyTextareaToClipboard();
-}
-
-function copyPrinterBlueprint() {
-    throw new Error("not implemented");
 }
 
 document.addEventListener('DOMContentLoaded', function () {

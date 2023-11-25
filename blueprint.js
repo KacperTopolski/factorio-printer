@@ -1,6 +1,12 @@
+function stringFromCharCodeArray(array) {
+    return [...array].map(x => String.fromCharCode(x)).join('');
+}
+
 function decode(string) {
-    throw new Error('not implemented');
-    return JSON.parse(pako.inflate(atob(string.slice(1)), { to: 'string' }));
+    const as_binary = atob(string.slice(1)).split('').map(x => x.charCodeAt(0));
+    const inflated = pako.inflate(as_binary);
+    const json = stringFromCharCodeArray(inflated);
+    return JSON.parse(json);
 }
 
 function encode(obj) {
@@ -15,17 +21,26 @@ class Blueprint {
 
     constructor(string = null) {
         this._root = string ? decode(string) : { blueprint: { entities: [] } };
+        this.entities.sort((a, b) =>
+            a.position.y != b.position.y ? a.position.y - b.position.y : a.position.x - b.position.x
+        );
     }
 
     get entities() {
         return this._root.blueprint.entities;
     }
 
+    set entities(value) {
+        this._root.blueprint.entities = value;
+    }
+
     encode() {
         return encode(this._root);
     }
 
-    _get_at(x, y) {
+    get_at(x, y) {
+        x = x + 0.5
+        y = y + 0.5
         const found = this.entities.filter(entity =>
             Math.abs(entity.position.x - x) <= 0.5 && Math.abs(entity.position.y - y) <= 0.5
         );
@@ -37,6 +52,7 @@ class Blueprint {
     add_entity(entity) {
         entity.entity_number = 1 + this.entities.length;
         this.entities.push(entity);
+        return entity
     }
 
     add_entities() {
@@ -45,7 +61,7 @@ class Blueprint {
     }
 
     add_constant(x, y) {
-        this.add_entity({
+        return this.add_entity({
             name: 'constant-combinator',
             position: { x: x + 0.5, y: y + 0.5 },
             direction: 2,
@@ -53,14 +69,14 @@ class Blueprint {
     }
 
     add_requester(x, y) {
-        this.add_entity({
+        return this.add_entity({
             name: 'logistic-chest-requester',
             position: { x: x + 0.5, y: y + 0.5 }
         });
     }
 
     add_decider(x, y, f_value) {
-        this.add_entity({
+        return this.add_entity({
             name: 'decider-combinator',
             position: { x: x + 0.5, y: y + 1 },
             direction: 4,
@@ -106,7 +122,7 @@ class Blueprint {
     }
 
     add_item(x, y, name, count) {
-        const entity = this._get_at(x + 0.5, y + 0.5);
+        const entity = this.get_at(x, y);
 
         if (entity.name == 'constant-combinator')
             this._add_item_constant_combinator(entity, name, count);
@@ -116,27 +132,27 @@ class Blueprint {
             throw new Error('Entity not found or invalid type');
     }
 
-    add_connection(x, y, xy_canal, s, t, st_canal, color) {
-        const entity1 = this._get_at(x + 0.5, y + 0.5);
-        const entity2 = this._get_at(s + 0.5, t + 0.5);
-
-        if (!entity1 || !entity2)
-            throw new Error('Entity not found');
-
-        const connection1 = this._get_entity_connections(entity1, xy_canal, color);
-        const connection2 = this._get_entity_connections(entity2, st_canal, color);
+    add_connection(entity1, canal1, entity2, canal2, color) {
+        const connection1 = this._get_entity_connections(entity1, canal1, color);
+        const connection2 = this._get_entity_connections(entity2, canal2, color);
 
         connection1.push({
-            entity_id: entity2.entity_number,
-            circuit_id: parseInt(st_canal)
+            'entity_id': entity2.entity_number,
+            'circuit_id': parseInt(canal2)
         });
         connection2.push({
-            entity_id: entity1.entity_number,
-            circuit_id: parseInt(xy_canal)
+            'entity_id': entity1.entity_number,
+            'circuit_id': parseInt(canal1)
         });
     }
 
+    add_connection_coord(x, y, xy_canal, s, t, st_canal, color) {
+        this.add_connection(this.get_at(x, y), xy_canal, this.get_at(s, t), st_canal, color);
+    }
+
     _get_entity_connections(entity, canal, color) {
+        if (!entity)
+            throw new Error('invalid entity');
         const connections = (entity.connections = entity.connections || {});
         const canalConnections = (connections[canal] = connections[canal] || {});
         const colorConnections = (canalConnections[color] = canalConnections[color] || []);

@@ -81,13 +81,35 @@ function process_image(image, palette, W_ROUND = 4, H = 32) {
     return {imageURL: offscreen_canvas.toDataURL(), itemData: itemData};
 }
 
-function blueprint_of_chests_requesters(item_list, item_count, chest_count=2) {
-    const bl = new Blueprint();
-    for (let i = 0; i < chest_count; ++i)
-        bl.add_requester(i * 4, 0);
+function printer_blueprint(printer_data, item_list, item_count, chest_slots) {
+    const bl = new Blueprint(printer_data);
 
-    for (let i = 0; i < item_list.length; ++i)
-        bl.add_item((i % chest_count) * 4, 0, item_list[i], item_count);
+    bl.entities.filter(entity => entity.name == 'logistic-chest-requester').forEach(entity => {
+        entity.request_filters = [];
+        item_list.forEach(item => bl._add_item_chest_requester(entity, item, item_count));
+    });
+
+    i = 0
+    bl.entities.filter(entity => entity.name == 'logistic-chest-storage').forEach(entity => {
+        entity.request_filters = [];
+        id = Math.floor(i++ / 8);
+        if (id < item_list.length)
+            bl._add_item_chest_requester(entity, item_list[id], 0);
+        else
+            entity.remove_flag = true;
+    });
+
+    i = 0
+    bl.entities.filter(entity => entity.name == 'logistic-chest-buffer').forEach(entity => {
+        entity.request_filters = [];
+        id = Math.floor(i++ / 2);
+        if (id < item_list.length)
+            bl._add_item_chest_requester(entity, item_list[id], item_count * chest_slots);
+        else
+            entity.remove_flag = true;
+    });
+
+    bl.entities = bl.entities.filter(obj => !obj.remove_flag);
 
     return bl;
 }
@@ -99,6 +121,7 @@ function blueprint_from_material_list(itemData) {
         throw new Error('bad dimensions');
 
     const bl = new Blueprint();
+    const deciders = [];
 
     for (let x = 0; x < W; ++x) {
         const X = Math.floor(x / 4);
@@ -107,17 +130,17 @@ function blueprint_from_material_list(itemData) {
 
         bl.add_constant(X, C[0]);
         bl.add_constant(X, C[1]);
-        bl.add_decider (X, D, f_value=X+1);
+        deciders.push(bl.add_decider(X, D, f_value=X+1));
 
         if (X-1 >= 0) {
-            bl.add_connection(X, D, Blueprint.CONN_DECIDER_OUT, X-1, D, Blueprint.CONN_DECIDER_OUT, 'red');
-            bl.add_connection(X, D, Blueprint.CONN_DECIDER_IN, X-1, D, Blueprint.CONN_DECIDER_IN, 'green');
+            bl.add_connection_coord(X, D, Blueprint.CONN_DECIDER_OUT, X-1, D, Blueprint.CONN_DECIDER_OUT, 'red');
+            bl.add_connection_coord(X, D, Blueprint.CONN_DECIDER_IN, X-1, D, Blueprint.CONN_DECIDER_IN, 'green');
         }
         if (D-4 >= 0)
-            bl.add_connection(X, D, Blueprint.CONN_DECIDER_IN, X, D-4, Blueprint.CONN_DECIDER_IN, 'green');
+            bl.add_connection_coord(X, D, Blueprint.CONN_DECIDER_IN, X, D-4, Blueprint.CONN_DECIDER_IN, 'green');
 
-        bl.add_connection(X, C[0], Blueprint.CONN_DEFAULT, X, C[1], Blueprint.CONN_DEFAULT, 'red');
-        bl.add_connection(X, C[1], Blueprint.CONN_DEFAULT, X, D, Blueprint.CONN_DECIDER_IN, 'red');
+        bl.add_connection_coord(X, C[0], Blueprint.CONN_DEFAULT, X, C[1], Blueprint.CONN_DEFAULT, 'red');
+        bl.add_connection_coord(X, C[1], Blueprint.CONN_DEFAULT, X, D, Blueprint.CONN_DECIDER_IN, 'red');
 
         for (let y = 0; y < 32; ++y) {
             const shift = Math.abs(Math.floor(y / 2) - 7.5) * 2;
@@ -125,7 +148,19 @@ function blueprint_from_material_list(itemData) {
         }
     }
 
-    bl.add_entity({
+    combinator1 = {
+        'name': 'constant-combinator',
+        'position': {'x': -0.5, 'y': 1.5},
+        'direction': 2,
+        'control_behavior': {
+            'filters': [{
+                'signal': {'type': 'virtual', 'name': 'signal-F'},
+                'count': 1,
+                'index': 1
+            }]
+        }
+    };
+    combinator2 = {
         'name': 'decider-combinator',
         'position': {'x': -1, 'y': 2.5},
         'direction': 2,
@@ -138,34 +173,8 @@ function blueprint_from_material_list(itemData) {
                 'copy_count_from_input': true
             }
         }
-    });
-    bl.add_entity({
-        'name': 'constant-combinator',
-        'position': {'x': -0.5, 'y': 1.5},
-        'direction': 2,
-        'control_behavior': {
-            'filters': [{
-                'signal': {'type': 'virtual', 'name': 'signal-F'},
-                'count': 1,
-                'index': 1
-            }]
-        }
-    });
-    bl.add_entity({
-        'name': 'decider-combinator',
-        'position': {'x': -1, 'y': 4.5},
-        'direction': 2,
-        'control_behavior': {
-            'decider_conditions': {
-                'first_signal': {'type': 'virtual', 'name': 'signal-R'},
-                'constant': 1,
-                'comparator': '=',
-                'output_signal': {'type': 'virtual', 'name': 'signal-F'},
-                'copy_count_from_input': false
-            }
-        }
-    });
-    bl.add_entity({
+    };
+    combinator3 = {
         'name': 'decider-combinator',
         'position': {'x': -1, 'y': 3.5},
         'direction': 2,
@@ -178,27 +187,51 @@ function blueprint_from_material_list(itemData) {
                 'copy_count_from_input': true
             }
         }
-    });
-    bl.add_entity({
-        'name': 'steel-chest',
-        'position': {'x': -2.5, 'y': 6.5}
-    });
-    bl.add_entity({
-        'name': 'steel-chest',
-        'position': {'x': -2.5, 'y': 9.5}
-    });
-    bl.add_entity({
-        'name': 'steel-chest',
-        'position': {'x': -2.5, 'y': 11.5}
-    });
-    bl.add_entity({
-        'name': 'steel-chest',
-        'position': {'x': -2.5, 'y': 13.5}
-    });
-    bl.add_entity({
-        'name': 'steel-chest',
-        'position': {'x': -2.5, 'y': 15.5}
-    });
+    };
+    combinator4 = {
+        'name': 'decider-combinator',
+        'position': {'x': -1, 'y': 4.5},
+        'direction': 2,
+        'control_behavior': {
+            'decider_conditions': {
+                'first_signal': {'type': 'virtual', 'name': 'signal-R'},
+                'constant': 1,
+                'comparator': '=',
+                'output_signal': {'type': 'virtual', 'name': 'signal-F'},
+                'copy_count_from_input': false
+            }
+        }
+    };
+    connection_point_timer = {
+        'name': 'constant-combinator',
+        'position': {'x': -9.5, 'y': 10.5},
+        'direction': 2
+    };
+    connection_point1 = {
+        'name': 'constant-combinator',
+        'position': {'x': -7.5, 'y': 9.5},
+        'direction': 2
+    };
+    connection_point2 = {
+        'name': 'constant-combinator',
+        'position': {'x': -8.5, 'y': 9.5},
+        'direction': 2
+    };
+    connection_point3 = {
+        'name': 'constant-combinator',
+        'position': {'x': -8.5, 'y': 10.5},
+        'direction': 2
+    };
+    connection_point4 = {
+        'name': 'constant-combinator',
+        'position': {'x': -7.5, 'y': 10.5},
+        'direction': 2
+    };
+
+    bl.add_entities(
+        combinator1, combinator2, combinator3, combinator4, connection_point_timer,
+        connection_point1, connection_point2, connection_point3, connection_point4
+    );
 
     for (let i = 0; i < 1 + (W / 4 - 9) / 18; ++i) {
         bl.add_entity({
@@ -212,21 +245,21 @@ function blueprint_from_material_list(itemData) {
     }
 
     // main control
-    bl.add_connection(-1, 4, Blueprint.CONN_DECIDER_IN, -1, 3, Blueprint.CONN_DECIDER_IN, 'red');
-    bl.add_connection(-1, 3, Blueprint.CONN_DECIDER_IN, -1, 2, Blueprint.CONN_DECIDER_IN, 'red');
-    bl.add_connection(-1, 2, Blueprint.CONN_DECIDER_OUT, 0, 2, Blueprint.CONN_DECIDER_IN, 'green');
+    bl.add_connection(combinator4, Blueprint.CONN_DECIDER_IN, combinator3, Blueprint.CONN_DECIDER_IN, 'red');
+    bl.add_connection(combinator3, Blueprint.CONN_DECIDER_IN, combinator2, Blueprint.CONN_DECIDER_IN, 'red');
+    bl.add_connection(combinator2, Blueprint.CONN_DECIDER_OUT, deciders[0], Blueprint.CONN_DECIDER_IN, 'green');
 
     // self connections and some constant
-    bl.add_connection(-1, 2, Blueprint.CONN_DECIDER_IN, -1, 1, Blueprint.CONN_DEFAULT, 'green');
-    bl.add_connection(-1, 3, Blueprint.CONN_DECIDER_IN, -1, 3, Blueprint.CONN_DECIDER_OUT, 'red');
-    bl.add_connection(-1, 4, Blueprint.CONN_DECIDER_IN, -1, 4, Blueprint.CONN_DECIDER_OUT, 'red');
+    bl.add_connection(combinator2, Blueprint.CONN_DECIDER_IN, combinator1, Blueprint.CONN_DEFAULT, 'green');
+    bl.add_connection(combinator3, Blueprint.CONN_DECIDER_IN, combinator3, Blueprint.CONN_DECIDER_OUT, 'red');
+    bl.add_connection(combinator4, Blueprint.CONN_DECIDER_IN, combinator4, Blueprint.CONN_DECIDER_OUT, 'red');
 
-    // chests
-    bl.add_connection(-3, 6, Blueprint.CONN_DEFAULT, -1, 4, Blueprint.CONN_DECIDER_IN, 'red');
-    bl.add_connection(-3, 9, Blueprint.CONN_DEFAULT, 0, 2, Blueprint.CONN_DECIDER_OUT, 'red');
-    bl.add_connection(-3, 11, Blueprint.CONN_DEFAULT, 0, 6, Blueprint.CONN_DECIDER_OUT, 'red');
-    bl.add_connection(-3, 13, Blueprint.CONN_DEFAULT, 0, 10, Blueprint.CONN_DECIDER_OUT, 'red');
-    bl.add_connection(-3, 15, Blueprint.CONN_DEFAULT, 0, 14, Blueprint.CONN_DECIDER_OUT, 'red');
+    // connection points
+    bl.add_connection(connection_point_timer, Blueprint.CONN_DEFAULT, combinator4, Blueprint.CONN_DECIDER_IN, 'red');
+    bl.add_connection(connection_point1, Blueprint.CONN_DEFAULT, deciders[0], Blueprint.CONN_DECIDER_OUT, 'red');
+    bl.add_connection(connection_point2, Blueprint.CONN_DEFAULT, deciders[1], Blueprint.CONN_DECIDER_OUT, 'red');
+    bl.add_connection(connection_point3, Blueprint.CONN_DEFAULT, deciders[2], Blueprint.CONN_DECIDER_OUT, 'red');
+    bl.add_connection(connection_point4, Blueprint.CONN_DEFAULT, deciders[3], Blueprint.CONN_DECIDER_OUT, 'red');
 
     return bl;
 }
